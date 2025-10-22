@@ -1,0 +1,26 @@
+{
+  "name": "bnb-auto-transfer-bot",
+  "version": "1.0.0",
+  "description": "Automated bot to transfer unstaked BNB from Trust Wallet to Binance",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "node test-connection.js"
+  },
+  "keywords": [
+    "bnb",
+    "binance",
+    "trust-wallet",
+    "auto-transfer",
+    "web3"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ethers": "^6.13.0",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.2"
+  }
+}
+

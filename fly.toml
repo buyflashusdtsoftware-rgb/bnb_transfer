@@ -1,0 +1,19 @@
+# fly.toml app configuration file
+app = "bnb-auto-transfer-bot"
+primary_region = "iad"
+
+[build]
+  builder = "heroku/buildpacks:20"
+
+[env]
+  BSC_RPC_URL = "https://bsc-dataseed1.binance.org/"
+  MIN_BALANCE_TO_TRANSFER = "0.01"
+  CHECK_INTERVAL_SECONDS = "10"
+
+[processes]
+  app = "npm start"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
