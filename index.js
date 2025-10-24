@@ -114,13 +114,17 @@ async function transferBNB(balance) {
         console.log('\n💰 Initiating transfer...');
         console.log(`   Balance: ${balance.bnb} BNB`);
         
-        // Get current gas price and estimate costs
+        // Get current gas price and estimate costs with 10% buffer for safety
         const feeData = await provider.getFeeData();
-        const gasPrice = feeData.gasPrice;
+        let gasPrice = feeData.gasPrice;
+        
+        // Add 10% buffer to gas price to prevent failure due to price fluctuations
+        gasPrice = (gasPrice * 110n) / 100n;
+        
         const gasLimit = 21000n;
         const gasCost = gasPrice * gasLimit;
         
-        // Calculate amount to send (total balance minus gas)
+        // Calculate amount to send (total balance minus gas with buffer)
         const amountToSend = balance.wei - gasCost;
         
         if (amountToSend <= 0n) {
@@ -135,6 +139,15 @@ async function transferBNB(balance) {
         console.log(`   Gas cost: ${gasCostInBnb} BNB (${ethers.formatUnits(gasPrice, 'gwei')} Gwei)`);
         console.log(`   To: ${config.binanceAddress}`);
         
+        // Final validation before sending
+        if (!ethers.isAddress(config.binanceAddress)) {
+            throw new Error('Invalid Binance address!');
+        }
+        
+        if (amountToSend <= 0n) {
+            throw new Error('Amount to send must be greater than 0');
+        }
+        
         // Create and send transaction
         const tx = await wallet.sendTransaction({
             to: config.binanceAddress,
@@ -146,24 +159,30 @@ async function transferBNB(balance) {
         console.log(`\n📤 Transaction sent!`);
         console.log(`   TX Hash: ${tx.hash}`);
         console.log(`   Waiting for confirmation...`);
+        console.log(`   BSCScan: https://bscscan.com/tx/${tx.hash}`);
         
-        // Wait for transaction confirmation
-        const receipt = await tx.wait();
+        // Wait for transaction confirmation (with timeout)
+        const receipt = await tx.wait(1); // Wait for 1 confirmation
         
-        if (receipt.status === 1) {
+        if (receipt && receipt.status === 1) {
+            // Calculate actual gas used
+            const actualGasUsed = receipt.gasUsed * receipt.gasPrice;
+            const actualGasCost = ethers.formatEther(actualGasUsed);
+            
             const message = `✅ TRANSFER SUCCESSFUL!\n\n` +
-                          `Amount: ${amountInBnb} BNB\n` +
-                          `Gas Fee: ${gasCostInBnb} BNB\n` +
+                          `Amount Sent: ${amountInBnb} BNB\n` +
+                          `Gas Fee Used: ${actualGasCost} BNB\n` +
                           `To: ${config.binanceAddress}\n` +
                           `TX: ${tx.hash}\n` +
                           `Block: ${receipt.blockNumber}\n` +
-                          `Time: ${getTimestamp()}`;
+                          `Time: ${getTimestamp()}\n` +
+                          `BSCScan: https://bscscan.com/tx/${tx.hash}`;
             
             console.log('\n' + message);
             await sendTelegramNotification(message);
             return true;
         } else {
-            console.log('❌ Transaction failed');
+            console.log('❌ Transaction failed or not confirmed');
             return false;
         }
     } catch (error) {
